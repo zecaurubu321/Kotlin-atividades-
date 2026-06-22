@@ -1,0 +1,12 @@
+fun showProfile() {
+    println("Name: $name")
+    println("Age: $age")
+    val hobbyText = if (hobby != null) "Likes to $hobby." else "Doesn't have a hobby."
+    val referrerText = if (referrer != null) {
+        "Has a referrer named ${referrer.name}, who likes to ${referrer.hobby}."
+    } else {
+        "Doesn't have a referrer."
+    }
+    println("$hobbyText $referrerText")
+    println()
+}
