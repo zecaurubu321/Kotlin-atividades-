@@ -1,0 +1,13 @@
+class Song(
+    val title: String,
+    val artist: String,
+    val releaseYear: Int,
+    val playCount: Int
+) {
+    val isFamous: Boolean
+        get() = playCount >= 1000
+
+    fun printDescription() {
+        println("$title, de $artist, lançado em $releaseYear.")
+    }
+}
