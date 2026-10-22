@@ -1,0 +1,52 @@
+name: Teste Front-end
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  testar-pagina:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências para teste
+        run: npm install -g http-server
+
+      - name: Executar testes automatizados
+        run: |
+          # Sobe um servidor HTTP simples em background na porta 8080
+          http-server -p 8080 &
+          
+          # Aguarda o servidor iniciar
+          sleep 2
+          
+          # Script em Node para testar se a página carrega e se os elementos essenciais existem
+          node -e '
+            const http = require("http");
+            http.get("http://localhost:8080/index.html", (res) => {
+              let data = "";
+              res.on("data", (chunk) => { data += chunk; });
+              res.on("end", () => {
+                if (res.statusCode === 200 && data.includes("Nitro Sneakers") && data.includes("iniciarCompra")) {
+                  console.log("Sucesso: A página HTML foi carregada corretamente e contém os scripts necessários!");
+                  process.exit(0);
+                } else {
+                  console.error("Erro: A estrutura da página não corresponde ao esperado.");
+                  process.exit(1);
+                }
+              });
+            }).on("error", (err) => {
+              console.error("Erro ao conectar ao servidor local: " + err.message);
+              process.exit(1);
+            });
+          '
