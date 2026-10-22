@@ -1,0 +1,80 @@
+name: Testes de Frontend - Nitro Sneakers
+
+on:
+push:
+branches: [ "main", "master" ]
+pull_request:
+branches: [ "main", "master" ]
+
+jobs:
+test-frontend:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout do código
+    uses: actions/checkout@v4
+
+  - name: Configurar Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 18
+
+  - name: Inicializar projeto Node e instalar Playwright
+    run: |
+      npm init -y
+      npm install -D @playwright/test serve
+      npx playwright install --with-deps chromium
+
+  - name: Criar script de teste E2E
+    run: |
+      mkdir -p tests
+      cat << 'EOF' > tests/frontend.spec.js
+      const { test, expect } = require('@playwright/test');
+
+      test.describe('Testes de Interface e Fluxo de Compra', () => {
+
+        test.beforeEach(async ({ page }) => {
+          await page.goto('http://localhost:3000');
+        });
+
+        test('Deve carregar o título principal da loja', async ({ page }) => {
+          const titulo = page.locator('header h1');
+          await expect(titulo).toContainText('Nitro Sneakers');
+        });
+
+        test('Deve exibir a lista de produtos corretamente', async ({ page }) => {
+          const produtos = page.locator('.cartao-tenis');
+          await expect(produtos).toHaveCount(8);
+        });
+
+        test('Deve calcular e exibir o resumo da compra corretamente com taxa de frete', async ({ page }) => {
+          // Clica no botão "Comprar" do primeiro tênis: Nitro Max (M) por R$ 300
+          const botaoComprar = page.locator('.cartao-tenis').first().locator('.btn-comprar');
+          await botaoComprar.click();
+
+          const caixaResumo = page.locator('#caixa-resumo');
+
+          // Verifica se o elemento ficou visível
+          await expect(caixaResumo).toBeVisible();
+
+          // O valor esperado é R$ 300 (preço) + R$ 30 (taxa) = R$ 330
+          await expect(caixaResumo).toContainText('Produto: Nitro Max (M)');
+          await expect(caixaResumo).toContainText('Valor Total: R$ 330,00');
+        });
+
+      });
+      EOF
+
+  - name: Executar testes de Frontend
+    run: |
+      # Sobe um servidor local na porta 3000 e executa os testes
+      npx serve . -l 3000 &
+      npx playwright test tests/frontend.spec.js --project=chromium
+
+  - name: Upload dos relatórios de teste em caso de falha
+    if: failure()
+    uses: actions/upload-artifact@v4
+    with:
+      name: relatorio-playwright
+      path: playwright-report/
+      retention-days: 7
